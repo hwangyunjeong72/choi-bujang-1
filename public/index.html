@@ -147,8 +147,11 @@
         return;
       }
 
-      if (data.user) showLoggedIn(data.user.email);
-    });
+      if (data.user) {
+  currentSession = data.session;
+  showLoggedIn(data.user.email, data.session);
+  await loadNotes(data.session);
+}
 
     logoutButton.addEventListener('click', async () => {
       logoutButton.disabled = true;
@@ -243,24 +246,27 @@
       }
     }
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        showLoggedIn(session.user.email);
-        loadNotes(session);
-      } else {
-        showLoggedOut('로그아웃 상태입니다.');
-        loadNotes(null);
-      }
-    });
+   supabase.auth.onAuthStateChange((_event, session) => {
+  currentSession = session;
+
+  if (session?.user) {
+    showLoggedIn(session.user.email, session);
+    loadNotes(session);
+  } else {
+    showLoggedOut('로그아웃 상태입니다.');
+    loadNotes(null);
+  }
+});
 
     const { data: initialSessionData } = await supabase.auth.getSession();
-    if (initialSessionData.session?.user) {
-      showLoggedIn(initialSessionData.session.user.email);
-      await loadNotes(initialSessionData.session);
-    } else {
-      showLoggedOut();
-      await loadNotes(null);
-    }
+   if (initialSessionData.session?.user) {
+  currentSession = initialSessionData.session;
+  showLoggedIn(
+    initialSessionData.session.user.email,
+    initialSessionData.session
+  );
+  await loadNotes(initialSessionData.session);
+}
   </script>
 </body>
 </html>
