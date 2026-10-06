@@ -10,24 +10,144 @@
     main { max-width: 760px; margin: 0 auto; padding: 44px 22px 64px; }
     .eyebrow { color: #8ad8df; font-size: 14px; font-weight: 700; letter-spacing: .08em; }
     h1 { margin: 16px 0; font-size: clamp(30px, 7vw, 48px); line-height: 1.2; }
+    h2 { margin-top: 30px; }
     p { font-size: 17px; line-height: 1.7; color: #bfd0e5; }
     .notice { margin: 26px 0; padding: 18px; border: 1px solid #d07384; border-radius: 14px; color: #ffe3e8; background: #612a3544; }
+    .auth { margin: 26px 0; padding: 20px; border: 1px solid #51667c; border-radius: 14px; background: #1a2a3d; }
+    label { display: block; margin: 12px 0 6px; color: #bfd0e5; }
+    input { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #51667c; border-radius: 8px; background: #101a28; color: #ecf4ff; }
+    button { margin-top: 14px; padding: 11px 16px; border: 0; border-radius: 8px; cursor: pointer; font-weight: 700; }
+    #loginButton { background: #8ad8df; color: #10202a; }
+    #logoutButton { background: #d07384; color: #fff; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .status { margin-top: 14px; min-height: 24px; color: #8ad8df; }
+    .error { color: #ffb7c1; }
     ul { list-style: none; display: grid; gap: 12px; padding: 0; }
     li { border: 1px solid #51667c; border-radius: 14px; padding: 17px 19px; background: #1a2a3d; }
     strong { display: block; font-size: 18px; margin-bottom: 5px; }
     li span { color: #bfd0e5; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <main>
-    <div class="eyebrow">BYTE BACK · 2단계 자료 분리</div>
+    <div class="eyebrow">BYTE BACK · 3단계 로그인</div>
     <h1>점령된 자료실</h1>
-    <p>가상 자료는 이제 정적 파일이 아니라 서버 함수를 통해 불러옵니다.</p>
+    <p>2단계의 가상 자료실 기능은 유지하고, Supabase Auth 이메일·비밀번호 로그인을 붙였습니다.</p>
+
+    <section class="auth" aria-labelledby="auth-title">
+      <h2 id="auth-title">로그인</h2>
+      <div id="loggedOut">
+        <label for="email">이메일</label>
+        <input id="email" type="email" autocomplete="email" placeholder="A 계정 이메일">
+        <label for="password">비밀번호</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="비밀번호">
+        <button id="loginButton" type="button">로그인</button>
+      </div>
+      <div id="loggedIn" class="hidden">
+        <p>로그인됨: <strong id="userEmail"></strong></p>
+        <button id="logoutButton" type="button">로그아웃</button>
+      </div>
+      <div id="authStatus" class="status" role="status" aria-live="polite"></div>
+    </section>
+
     <div class="notice">자료는 서버 함수가 Supabase에서 읽어 화면에 보여 줍니다. 서버 전용 키는 브라우저에 전달하지 않습니다.</div>
     <ul id="notes" aria-live="polite"><li>가상 자료를 불러오는 중입니다.</li></ul>
   </main>
+
   <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const SUPABASE_URL = 'https://qyemxvpxgkfgdjydrben.supabase.co';
+    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_5E20XUuqkEd-sQT4OZLSZA_-_Uf0UmS';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+    const loggedOut = document.querySelector('#loggedOut');
+    const loggedIn = document.querySelector('#loggedIn');
+    const userEmail = document.querySelector('#userEmail');
+    const emailInput = document.querySelector('#email');
+    const passwordInput = document.querySelector('#password');
+    const loginButton = document.querySelector('#loginButton');
+    const logoutButton = document.querySelector('#logoutButton');
+    const authStatus = document.querySelector('#authStatus');
     const list = document.querySelector('#notes');
+
+    function showLoggedOut(message = '') {
+      loggedOut.classList.remove('hidden');
+      loggedIn.classList.add('hidden');
+      userEmail.textContent = '';
+      authStatus.textContent = message;
+      authStatus.classList.toggle('error', Boolean(message));
+    }
+
+    function showLoggedIn(email) {
+      loggedOut.classList.add('hidden');
+      loggedIn.classList.remove('hidden');
+      userEmail.textContent = email || '(이메일 없음)';
+      authStatus.textContent = '로그인 상태입니다.';
+      authStatus.classList.remove('error');
+      passwordInput.value = '';
+    }
+
+    async function refreshAuthState() {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        showLoggedOut('로그인 상태를 확인하지 못했습니다: ' + error.message);
+        return;
+      }
+      if (data.session?.user) showLoggedIn(data.session.user.email);
+      else showLoggedOut();
+    }
+
+    loginButton.addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      if (!email || !password) {
+        showLoggedOut('이메일과 비밀번호를 모두 입력해 주세요.');
+        return;
+      }
+
+      loginButton.disabled = true;
+      authStatus.textContent = '로그인 중...';
+      authStatus.classList.remove('error');
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      loginButton.disabled = false;
+
+      if (error) {
+        showLoggedOut('로그인 실패: ' + error.message);
+        return;
+      }
+
+      if (data.user) showLoggedIn(data.user.email);
+    });
+
+    logoutButton.addEventListener('click', async () => {
+      logoutButton.disabled = true;
+      const { error } = await supabase.auth.signOut();
+      logoutButton.disabled = false;
+
+      if (error) {
+        authStatus.textContent = '로그아웃 실패: ' + error.message;
+        authStatus.classList.add('error');
+        return;
+      }
+
+      showLoggedOut('로그아웃되었습니다.');
+    });
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) showLoggedIn(session.user.email);
+      else showLoggedOut('로그아웃 상태입니다.');
+    });
+
+    await refreshAuthState();
+
     try {
       const response = await fetch('/api/notes', { cache: 'no-store' });
       if (!response.ok) throw new Error('가상 자료를 불러올 수 없습니다.');
