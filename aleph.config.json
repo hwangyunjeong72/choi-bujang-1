@@ -1,0 +1,11 @@
+{
+  "step": 2,
+  "repoUrl": "https://github.com/hwangyunjeong72/choi-bujang-1",
+  "publicAppUrl": "https://choi-bujang-1.vercel.app/",
+  "sampleMarker": "SAMPLE_NOTE_1",
+  "judgeIssuer": "https://aleph-judge-production.up.railway.app/defense/judge",
+  "identityProvider": null,
+  "allowedRoutes": [],
+  "originalApiUrl": null,
+  "restoreRoute": null
+}
