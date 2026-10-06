@@ -101,15 +101,16 @@
       authStatus.classList.toggle('error', Boolean(message));
     }
 
-    function showLoggedIn(email) {
-      editor.classList.remove('hidden');
-      loggedOut.classList.add('hidden');
-      loggedIn.classList.remove('hidden');
-      userEmail.textContent = email || '(이메일 없음)';
-      authStatus.textContent = '로그인 상태입니다.';
-      authStatus.classList.remove('error');
-      passwordInput.value = '';
-    }
+    function showLoggedIn(email, session = currentSession) {
+  currentSession = session;
+  editor.classList.remove('hidden');
+  loggedOut.classList.add('hidden');
+  loggedIn.classList.remove('hidden');
+  userEmail.textContent = email || '(이메일 없음)';
+  authStatus.textContent = '로그인 상태입니다.';
+  authStatus.classList.remove('error');
+  passwordInput.value = '';
+}
 
     async function refreshAuthState() {
       const { data, error } = await supabase.auth.getSession();
