@@ -38,7 +38,7 @@ export default async function handler(request, response) {
 
     if (request.method === 'GET') {
       const { data, error } = await supabase.from('learning_notes')
-        .select('id,title,content').eq('id', id).maybeSingle();
+        .select('id,title,content,owner_id').eq('id', id).eq('owner_id', login.userId).maybeSingle();
       if (error) return response.status(500).json({ error: '자료를 불러오지 못했습니다.' });
       if (!data) return response.status(404).json({ error: '자료를 찾을 수 없습니다.' });
       return response.status(200).json({ id: data.id, title: data.title, body: data.content });
@@ -50,8 +50,8 @@ export default async function handler(request, response) {
         return response.status(400).json({ error: 'title과 body가 필요합니다.' });
       }
       const { data, error } = await supabase.from('learning_notes')
-        .update({ title: body.title, content: body.body }).eq('id', id)
-        .select('id,title,content').maybeSingle();
+        .update({ title: body.title, content: body.body, owner_id: login.userId }).eq('id', id).eq('owner_id', login.userId)
+        .select('id,title,content,owner_id').maybeSingle();
       if (error) return response.status(500).json({ error: '자료를 수정하지 못했습니다.' });
       if (!data) return response.status(404).json({ error: '자료를 찾을 수 없습니다.' });
       return response.status(200).json({ id: data.id, title: data.title, body: data.content });
@@ -59,7 +59,7 @@ export default async function handler(request, response) {
 
     if (request.method === 'DELETE') {
       const { data, error } = await supabase.from('learning_notes')
-        .delete().eq('id', id).select('id').maybeSingle();
+        .delete().eq('id', id).eq('owner_id', login.userId).select('id').maybeSingle();
       if (error) return response.status(500).json({ error: '자료를 삭제하지 못했습니다.' });
       if (!data) return response.status(404).json({ error: '자료를 찾을 수 없습니다.' });
       return response.status(204).end();
