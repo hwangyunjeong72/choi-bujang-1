@@ -147,11 +147,12 @@
         return;
       }
 
-      if (data.user) {
+    if (data.user) {
   currentSession = data.session;
   showLoggedIn(data.user.email, data.session);
   await loadNotes(data.session);
 }
+});
 
     logoutButton.addEventListener('click', async () => {
       logoutButton.disabled = true;
@@ -266,6 +267,9 @@
     initialSessionData.session
   );
   await loadNotes(initialSessionData.session);
+}  else {
+  showLoggedOut();
+  await loadNotes(null);
 }
   </script>
 </body>
