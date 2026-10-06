@@ -66,12 +66,8 @@
     <ul id="notes" aria-live="polite"><li>가상 자료를 불러오는 중입니다.</li></ul>
   </main>
 
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-    const SUPABASE_URL = 'https://qyemxvpxgkfgdjydrben.supabase.co';
-    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_5E20XUuqkEd-sQT4OZLSZA_-_Uf0UmS';
-    const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  <script>
+    const SESSION_KEY = 'byte-back-session';
 
     const loggedOut = document.querySelector('#loggedOut');
     const loggedIn = document.querySelector('#loggedIn');
@@ -91,8 +87,28 @@
     const noteStatus = document.querySelector('#noteStatus');
     let currentSession = null;
 
-    function showLoggedOut(message = '') {
+    function saveSession(session) {
+      currentSession = session;
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    }
+
+    function readSession() {
+      try {
+        const value = sessionStorage.getItem(SESSION_KEY);
+        return value ? JSON.parse(value) : null;
+      } catch {
+        sessionStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+    }
+
+    function clearSession() {
       currentSession = null;
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+
+    function showLoggedOut(message = '') {
+      clearSession();
       editor.classList.add('hidden');
       loggedOut.classList.remove('hidden');
       loggedIn.classList.add('hidden');
@@ -101,25 +117,55 @@
       authStatus.classList.toggle('error', Boolean(message));
     }
 
-    function showLoggedIn(email, session = currentSession) {
-  currentSession = session;
-  editor.classList.remove('hidden');
-  loggedOut.classList.add('hidden');
-  loggedIn.classList.remove('hidden');
-  userEmail.textContent = email || '(이메일 없음)';
-  authStatus.textContent = '로그인 상태입니다.';
-  authStatus.classList.remove('error');
-  passwordInput.value = '';
-}
+    function showLoggedIn(email, session) {
+      currentSession = session;
+      editor.classList.remove('hidden');
+      loggedOut.classList.add('hidden');
+      loggedIn.classList.remove('hidden');
+      userEmail.textContent = email || '(이메일 없음)';
+      authStatus.textContent = '로그인 상태입니다.';
+      authStatus.classList.remove('error');
+      passwordInput.value = '';
+    }
 
-    async function refreshAuthState() {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        showLoggedOut('로그인 상태를 확인하지 못했습니다: ' + error.message);
+    async function authRequest(body) {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || '인증 요청에 실패했습니다.');
+      return data;
+    }
+
+    async function login(email, password) {
+      const data = await authRequest({ action: 'login', email, password });
+      saveSession(data.session);
+      showLoggedIn(data.session.user.email, data.session);
+      await loadNotes(data.session);
+    }
+
+    async function restoreSession() {
+      const saved = readSession();
+      if (!saved?.access_token || !saved?.user) {
+        showLoggedOut();
+        await loadNotes(null);
         return;
       }
-      if (data.session?.user) showLoggedIn(data.session.user.email);
-      else showLoggedOut();
+
+      try {
+        const data = await authRequest({
+          action: 'refresh',
+          refresh_token: saved.refresh_token
+        });
+        saveSession(data.session);
+        showLoggedIn(data.session.user.email, data.session);
+        await loadNotes(data.session);
+      } catch {
+        showLoggedOut('로그인 세션이 만료되었습니다. 다시 로그인해 주세요.');
+        await loadNotes(null);
+      }
     }
 
     loginButton.addEventListener('click', async () => {
@@ -135,47 +181,35 @@
       authStatus.textContent = '로그인 중...';
       authStatus.classList.remove('error');
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      loginButton.disabled = false;
-
-      if (error) {
+      try {
+        await login(email, password);
+      } catch (error) {
         showLoggedOut('로그인 실패: ' + error.message);
-        return;
+      } finally {
+        loginButton.disabled = false;
       }
+    });
 
-    if (data.user) {
-  currentSession = data.session;
-  showLoggedIn(data.user.email, data.session);
-  await loadNotes(data.session);
-}
-});
-
-    logoutButton.addEventListener('click', async () => {
-      logoutButton.disabled = true;
-      const { error } = await supabase.auth.signOut();
-      logoutButton.disabled = false;
-
-      if (error) {
-        authStatus.textContent = '로그아웃 실패: ' + error.message;
-        authStatus.classList.add('error');
-        return;
-      }
-
+    logoutButton.addEventListener('click', () => {
       showLoggedOut('로그아웃되었습니다.');
+      list.replaceChildren();
     });
 
     function resetEditor() {
-      noteId.value = ''; noteTitle.value = ''; noteBody.value = '';
-      saveNote.textContent = '새 메모 추가'; cancelEdit.classList.add('hidden');
+      noteId.value = '';
+      noteTitle.value = '';
+      noteBody.value = '';
+      saveNote.textContent = '새 메모 추가';
+      cancelEdit.classList.add('hidden');
     }
 
     function editNote(note) {
-      noteId.value = note.id; noteTitle.value = note.title; noteBody.value = note.body;
-      saveNote.textContent = '메모 수정'; cancelEdit.classList.remove('hidden'); noteTitle.focus();
+      noteId.value = note.id;
+      noteTitle.value = note.title;
+      noteBody.value = note.body;
+      saveNote.textContent = '메모 수정';
+      cancelEdit.classList.remove('hidden');
+      noteTitle.focus();
     }
 
     async function deleteNote(id) {
@@ -185,8 +219,13 @@
         headers: { Authorization: 'Bearer ' + currentSession.access_token }
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) { noteStatus.textContent = data.error || '삭제 실패'; return; }
-      noteStatus.textContent = '삭제되었습니다.'; resetEditor(); await loadNotes(currentSession);
+      if (!response.ok) {
+        noteStatus.textContent = data.error || '삭제 실패';
+        return;
+      }
+      noteStatus.textContent = '삭제되었습니다.';
+      resetEditor();
+      await loadNotes(currentSession);
     }
 
     saveNote.addEventListener('click', async () => {
@@ -196,13 +235,20 @@
       const url = id ? '/api/notes/' + id : '/api/notes';
       const response = await fetch(url, {
         method,
-        headers: { Authorization: 'Bearer ' + currentSession.access_token, 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: 'Bearer ' + currentSession.access_token,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ title: noteTitle.value, body: noteBody.value })
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) { noteStatus.textContent = data.error || '저장 실패'; return; }
+      if (!response.ok) {
+        noteStatus.textContent = data.error || '저장 실패';
+        return;
+      }
       noteStatus.textContent = id ? '수정되었습니다.' : '추가되었습니다.';
-      resetEditor(); await loadNotes(currentSession);
+      resetEditor();
+      await loadNotes(currentSession);
     });
 
     cancelEdit.addEventListener('click', resetEditor);
@@ -220,23 +266,27 @@
       try {
         const response = await fetch('/api/notes', {
           cache: 'no-store',
-          headers: {
-            Authorization: 'Bearer ' + session.access_token
-          }
+          headers: { Authorization: 'Bearer ' + session.access_token }
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || '가상 자료를 불러올 수 없습니다.');
         if (!Array.isArray(data)) throw new Error('자료 형식이 맞지 않습니다.');
+
         list.replaceChildren(...data.map(note => {
           const item = document.createElement('li');
           const title = document.createElement('strong');
           const content = document.createElement('span');
           title.textContent = note.title;
           content.textContent = note.body;
+
           const edit = document.createElement('button');
-          edit.textContent = '수정'; edit.onclick = () => editNote(note);
+          edit.textContent = '수정';
+          edit.onclick = () => editNote(note);
+
           const remove = document.createElement('button');
-          remove.textContent = '삭제'; remove.onclick = () => deleteNote(note.id);
+          remove.textContent = '삭제';
+          remove.onclick = () => deleteNote(note.id);
+
           item.append(title, content, edit, remove);
           return item;
         }));
@@ -247,30 +297,7 @@
       }
     }
 
-   supabase.auth.onAuthStateChange((_event, session) => {
-  currentSession = session;
-
-  if (session?.user) {
-    showLoggedIn(session.user.email, session);
-    loadNotes(session);
-  } else {
-    showLoggedOut('로그아웃 상태입니다.');
-    loadNotes(null);
-  }
-});
-
-    const { data: initialSessionData } = await supabase.auth.getSession();
-   if (initialSessionData.session?.user) {
-  currentSession = initialSessionData.session;
-  showLoggedIn(
-    initialSessionData.session.user.email,
-    initialSessionData.session
-  );
-  await loadNotes(initialSessionData.session);
-}  else {
-  showLoggedOut();
-  await loadNotes(null);
-}
+    restoreSession();
   </script>
 </body>
 </html>
