@@ -1,4 +1,4 @@
 {
-  "explanation": "2단계에서 가상 메모를 정적 data.json 밖으로 옮겼습니다.\n화면은 Vercel 서버 함수 /api/notes를 통해 Supabase의 학습용 테이블을 읽습니다.\n서버 전용 Supabase 키는 브라우저 파일·응답·로그에 넣지 않습니다.",
+  "explanation": "5단계 저장점으로 자료 API의 직접 접근을 줄이는 구조를 기록했습니다.\nA의 메모 추가·조회·수정·삭제는 계속 로그인 검증을 거치는 Vercel 서버 함수에서 처리합니다.\n원본 Supabase 자료 API 주소를 aleph.config.json에 기록했으며, 직접 테이블 권한 회수 SQL은 학습 DB에서 별도로 적용·확인합니다.",
   "blockedAt": null
 }
