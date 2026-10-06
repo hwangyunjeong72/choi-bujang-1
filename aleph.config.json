@@ -1,5 +1,5 @@
 {
-  "step": 3,
+  "step": 4,
   "repoUrl": "https://github.com/hwangyunjeong72/choi-bujang-1",
   "publicAppUrl": "https://choi-bujang-1.vercel.app/",
   "sampleMarker": "SAMPLE_NOTE_1",
@@ -9,7 +9,13 @@
     "jwksUrl": "https://qyemxvpxgkfgdjydrben.supabase.co/auth/v1/.well-known/jwks.json",
     "audience": "authenticated"
   },
-  "allowedRoutes": [],
+  "allowedRoutes": [
+    "GET /api/notes",
+    "POST /api/notes",
+    "GET /api/notes/:id",
+    "PUT /api/notes/:id",
+    "DELETE /api/notes/:id"
+  ],
   "originalApiUrl": null,
   "restoreRoute": null
 }
