@@ -36,6 +36,7 @@ export default async function handler(request, response) {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
 
+    // Every detail operation is scoped to the verified login user, never a URL/body owner_id.
     if (request.method === 'GET') {
       const { data, error } = await supabase.from('learning_notes')
         .select('id,title,content,owner_id').eq('id', id).eq('owner_id', login.userId).maybeSingle();
