@@ -1,0 +1,4 @@
+{
+  "explanation": "2단계에서 가상 메모를 정적 data.json 밖으로 옮겼습니다.\n화면은 Vercel 서버 함수 /api/notes를 통해 Supabase의 학습용 테이블을 읽습니다.\n서버 전용 Supabase 키는 브라우저 파일·응답·로그에 넣지 않습니다.",
+  "blockedAt": null
+}
