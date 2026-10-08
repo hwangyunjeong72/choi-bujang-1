@@ -41,7 +41,7 @@ function isClearlyMalicious(alert, patternName) {
   return Boolean(
     hasT1110(alert)
     && patternName
-    && Number(alert?.rule?.level) >= 10
+    && Number(alert?.rule?.level) >= 8
   );
 }
 
