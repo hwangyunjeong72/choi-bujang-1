@@ -1,0 +1,22 @@
+{
+  "moduleKey": "web-injection",
+  "technique": "T1190",
+  "techniqueName": "Exploit Public-Facing Application",
+  "patterns": [
+    {
+      "name": "SQL 구문 반복",
+      "condition": "요청 인자에서 SQL 구문 표기가 반복적으로 나타나는 경우",
+      "evidence": "MITRE ATT&CK T1190은 공개된 웹 애플리케이션을 악용하는 사례에 SQL injection을 포함합니다."
+    },
+    {
+      "name": "스크립트 태그 반복",
+      "condition": "요청 인자에서 스크립트 태그 표기가 반복적으로 나타나는 경우",
+      "evidence": "MITRE ATT&CK의 T1190 관련 매핑에는 Cross-site scripting(XSS)이 공개 애플리케이션 악용 유형으로 연결되어 있습니다."
+    },
+    {
+      "name": "경로 상위 이동 반복",
+      "condition": "요청 인자에서 ../ 형태의 경로 상위 이동 표기가 반복적으로 나타나는 경우",
+      "evidence": "MITRE ATT&CK의 T1190 관련 매핑에는 path traversal이 공개 애플리케이션 악용 유형으로 연결되어 있습니다."
+    }
+  ]
+}
