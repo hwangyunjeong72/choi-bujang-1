@@ -1,0 +1,13 @@
+{
+  "schema": "aleph.xdr.ztna-deny-rules.v1",
+  "generatedAt": "2026-10-08T00:00:00.000Z",
+  "rules": [
+    {"ruleId":"xdr.web_injection.wi-01","action":"deny","sourceAddress":"203.0.113.10","account":"","createdAt":"2026-10-08T00:00:00.000Z","expiresAt":"2026-10-08T01:00:00.000Z","evidenceAlertId":"wi-01","reason":"SQL 구문 반복","confidence":0.95},
+    {"ruleId":"xdr.web_injection.wi-02","action":"deny","sourceAddress":"203.0.113.10","account":"","createdAt":"2026-10-08T00:00:00.000Z","expiresAt":"2026-10-08T01:00:00.000Z","evidenceAlertId":"wi-02","reason":"스크립트 태그 반복","confidence":0.95},
+    {"ruleId":"xdr.web_injection.wi-03","action":"deny","sourceAddress":"198.51.100.15","account":"","createdAt":"2026-10-08T00:00:00.000Z","expiresAt":"2026-10-08T01:00:00.000Z","evidenceAlertId":"wi-03","reason":"경로 상위 이동 반복","confidence":0.95},
+    {"ruleId":"xdr.web_injection.wi-04","action":"deny","sourceAddress":"192.0.2.15","account":"","createdAt":"2026-10-08T00:00:00.000Z","expiresAt":"2026-10-08T01:00:00.000Z","evidenceAlertId":"wi-04","reason":"SQL 구문 반복","confidence":0.95},
+    {"ruleId":"xdr.web_injection.wi-05","action":"deny","sourceAddress":"203.0.113.18","account":"","createdAt":"2026-10-08T00:00:00.000Z","expiresAt":"2026-10-08T01:00:00.000Z","evidenceAlertId":"wi-05","reason":"SQL 구문 반복","confidence":0.95},
+    {"ruleId":"xdr.web_injection.wi-07","action":"deny","sourceAddress":"192.0.2.21","account":"","createdAt":"2026-10-08T00:00:00.000Z","expiresAt":"2026-10-08T01:00:00.000Z","evidenceAlertId":"wi-07","reason":"경로 상위 이동 반복","confidence":0.95},
+    {"ruleId":"xdr.web_injection.wi-08","action":"deny","sourceAddress":"203.0.113.22","account":"","createdAt":"2026-10-08T00:00:00.000Z","expiresAt":"2026-10-08T01:00:00.000Z","evidenceAlertId":"wi-08","reason":"SQL 구문 반복","confidence":0.95}
+  ]
+}
