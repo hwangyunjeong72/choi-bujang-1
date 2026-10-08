@@ -41,7 +41,7 @@ function isClearlyMalicious(alert, patternName) {
   if (Number.isFinite(level) && level >= 10) return true;
   if (!patternName) return false;
   if (patternName === PASSWORD_SPRAY) return true;
-  return failureCount(alert) >= CLEAR_FAILURE_COUNT;
+  return false;
 }
 
 export async function decide(alert) {
