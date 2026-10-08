@@ -47,7 +47,12 @@ function isClearlyNormal(alert) {
 }
 
 function isClearlyMalicious(alert, patternName) {
-  if (!hasT1110(alert) || !patternName) return false;
+  if (!hasT1110(alert)) return false;
+
+  const level = Number(alert?.rule?.level);
+  if (Number.isFinite(level) && level >= 10) return true;
+
+  if (!patternName) return false;
 
   if (patternName === PASSWORD_SPRAY) {
     return true;
@@ -118,7 +123,7 @@ export async function decide(alert) {
     return {
       action: 'block',
       confidence: 0.99,
-      reason: patternName,
+      reason: patternName ?? '명확한 T1110 공격',
     };
   }
 
