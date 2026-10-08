@@ -2,6 +2,7 @@ import patterns from './patterns.json' with { type: 'json' };
 
 const BLOCK_THRESHOLD = 0.85;
 const ALERT_THRESHOLD = 0.5;
+const CLEAR_FAILURE_COUNT = 6;
 
 const [SHORT_BURST, PASSWORD_SPRAY] = patterns.patterns.map((pattern) => pattern.name);
 
@@ -11,6 +12,14 @@ function textOf(alert) {
 
 function hasT1110(alert) {
   return Array.isArray(alert?.rule?.mitre) && alert.rule.mitre.includes('T1110');
+}
+
+function failureCount(alert) {
+  const dataCount = Number(alert?.data?.count);
+  if (Number.isFinite(dataCount)) return dataCount;
+
+  const match = textOf(alert).match(/실패(?:가| )\s*(\d+)건|실패\s*(\d+)건/);
+  return Number(match?.[1] ?? match?.[2] ?? 0);
 }
 
 function matchedPattern(alert) {
@@ -38,15 +47,17 @@ function isClearlyNormal(alert) {
 }
 
 function isClearlyMalicious(alert, patternName) {
-  return Boolean(
-    hasT1110(alert)
-    && patternName
-    && Number(alert?.rule?.level) >= 8
-  );
+  if (!hasT1110(alert) || !patternName) return false;
+
+  if (patternName === PASSWORD_SPRAY) {
+    return true;
+  }
+
+  return failureCount(alert) >= CLEAR_FAILURE_COUNT;
 }
 
-// Jev is an optional judgement hook. If the runner does not provide it,
-// ambiguous events safely fall back to alert as required.
+// Jev is only consulted for ambiguous pattern matches.
+// If Jev is unavailable or returns an invalid confidence, fall back to alert.
 async function askJev(alert, patternName) {
   const judge = globalThis.Jev?.decide;
   if (typeof judge !== 'function') return null;
@@ -111,10 +122,9 @@ export async function decide(alert) {
     };
   }
 
-  // Pattern signal exists but is not strong enough for an automatic block:
-  // ask Jev for confidence. No response means alert.
   if (patternName) {
     const jev = await askJev(alert, patternName);
+
     if (!jev) {
       return {
         action: 'alert',
@@ -122,6 +132,7 @@ export async function decide(alert) {
         reason: patternName,
       };
     }
+
     return decisionFromConfidence(jev.confidence, patternName);
   }
 
