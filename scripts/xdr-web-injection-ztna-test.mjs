@@ -11,7 +11,8 @@ const fixture = JSON.parse(
 const now = new Date('2026-10-08T00:00:00.000Z');
 
 const ruleSet = await buildDenyRules(fixture.alerts, now);
-const clearAttacks = fixture.alerts.filter((alert) => alert.id <= 'wi-08');
+const clearAttackIds = new Set(['wi-01', 'wi-02', 'wi-03', 'wi-04', 'wi-05', 'wi-07', 'wi-08']);
+const clearAttacks = fixture.alerts.filter((alert) => clearAttackIds.has(alert.id));
 
 assert.equal(
   ruleSet.rules.length,
