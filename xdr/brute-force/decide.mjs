@@ -24,9 +24,8 @@ function matchedPattern(alert) {
   }
 
   if (
-    /(같은 주소|한 주소)/.test(description)
+    hasT1110(alert)
     && /(로그인 실패|실패)/.test(description)
-    && /(\d+분 (안|동안)|계정 \d+개)/.test(description)
   ) {
     return SHORT_BURST;
   }
