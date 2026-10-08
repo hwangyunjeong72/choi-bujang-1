@@ -1,6 +1,5 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
 
 const patternsUrl = new URL('./patterns.json', import.meta.url);
 
@@ -37,15 +36,15 @@ function countSignals(alert, patternName) {
   if (Number.isFinite(count)) return count;
 
   if (patternName === 'SQL 구문 반복') {
-    return (text.match(/sql|select|union|or|where/gi) || []).length;
+    return (text.match(/sql|select|union|where|\bor\b|데이터베이스\s*조회/gi) || []).length;
   }
 
   if (patternName === '스크립트 태그 반복') {
-    return (text.match(/<script|scripts*tag|script/gi) || []).length;
+    return (text.match(/<script\b|script\s*tag|스크립트.*(?:삽입|태그).*표/gi) || []).length;
   }
 
   if (patternName === '경로 상위 이동 반복') {
-    return (text.match(/..//g) || []).length;
+    return (text.match(/\.\.\//g) || []).length;
   }
 
   return 0;
@@ -56,11 +55,11 @@ function matchedPatterns(alert, patterns) {
 
   return patterns.filter((pattern) => {
     if (pattern.name === 'SQL 구문 반복') {
-      return /sql|select|union|where|\bor\b/i.test(text);
+      return /sql\s*(?:구문|표기)|select|union|where|\bor\b|데이터베이스\s*조회/i.test(text);
     }
 
     if (pattern.name === '스크립트 태그 반복') {
-      return /<script\b|script\s*tag/i.test(text);
+      return /<script\b|script\s*tag|스크립트.*(?:삽입|태그).*표/i.test(text);
     }
 
     if (pattern.name === '경로 상위 이동 반복') {
