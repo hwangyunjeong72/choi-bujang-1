@@ -47,6 +47,10 @@ function countSignals(alert, patternName) {
     return (text.match(/\.\.\//g) || []).length;
   }
 
+  if (patternName === '명령 구분자 반복') {
+    return (text.match(/명령\s*구분자|command\s*separator|(?:&&|\|\||;)/gi) || []).length;
+  }
+
   return 0;
 }
 
@@ -64,6 +68,10 @@ function matchedPatterns(alert, patterns) {
 
     if (pattern.name === '경로 상위 이동 반복') {
       return /\.\.\//.test(text) || /경로.*거슬러|경로.*이탈|상위.*이동/i.test(text);
+    }
+
+    if (pattern.name === '명령 구분자 반복') {
+      return /명령\s*구분자|command\s*separator|(?:&&|\|\||;)/i.test(text);
     }
 
     return false;
