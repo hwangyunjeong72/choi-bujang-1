@@ -1,168 +1,57 @@
-import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
+const PATTERNS = Object.freeze([
+  Object.freeze({
+    name: 'SQL 구문 반복',
+    evidence: 'T1190 공개 애플리케이션 악용에서 SQL injection 신호',
+    test: /(?:SQL 구문|SQL 표기|SQL 표식|데이터베이스 조회|(?:SELECT|UNION|WHERE)\b|\bOR\b).*?(?:반복|번|회)/i,
+    repeat: (text, count) => count >= 2 || /SQL (?:구문|표기|표식).*?반복/i.test(text) || /(?:데이터베이스 조회).*?(?:반복|번|회)/i.test(text),
+    weak: /SQL(?:이라는|인)? .*?(?:한 번|1회|1건)|select(?:라는|인)? .*?(?:한 번|1회|1건)/i
+  }),
+  Object.freeze({
+    name: '스크립트 태그 반복',
+    evidence: 'T1190 관련 XSS의 스크립트 태그 주입 신호',
+    test: /(?:<script\b|스크립트 (?:삽입|태그|표식)).*(?:반복|번|회)/i,
+    repeat: (text, count) => count >= 2 || /스크립트 (?:삽입|태그|표식).*?(?:반복|번|회)/i.test(text),
+    weak: /스크립트.*?(?:한 번|1회|1건)|주입처럼 보이는 표기/i
+  }),
+  Object.freeze({
+    name: '경로 상위 이동 반복',
+    evidence: 'T1190 관련 path traversal의 상위 경로 이동 신호',
+    test: /(?:\.\.\/|경로 (?:상위 이동|거슬러|이탈)).*(?:반복|번|회)/i,
+    repeat: (text, count) => count >= 2 || /경로 (?:상위 이동|거슬러|이탈).*?(?:반복|번|회)/i.test(text),
+    weak: /(?:\.\.\/|경로에 up|경로.*?한 번|1회|1건)/i
+  })
+]);
 
-const patternsUrl = new URL('./patterns.json', import.meta.url);
-
-const BLOCK_CONFIDENCE = 0.95;
-const ALERT_CONFIDENCE = 0.5;
-const RECORD_CONFIDENCE = 0.1;
-
-async function loadPatterns() {
-  const raw = await readFile(patternsUrl, 'utf8');
-  const data = JSON.parse(raw);
-
-  if (!Array.isArray(data.patterns)) {
-    throw new TypeError('patterns.json에 patterns 배열이 없습니다.');
-  }
-
-  return data.patterns;
+function textOf(alert) {
+  return [alert?.data?.url, alert?.rule?.description, alert?.description].filter(Boolean).join(' ');
 }
 
-function requestText(alert) {
-  return [
-    alert?.data?.url,
-    alert?.rule?.description,
-    alert?.description,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+function hasT1190(alert) {
+  return Array.isArray(alert?.rule?.mitre) && alert.rule.mitre.includes('T1190');
 }
 
-function countSignals(alert, patternName) {
-  const text = requestText(alert);
-  const count = Number.parseInt(alert?.data?.count, 10);
-
-  if (Number.isFinite(count)) return count;
-
-  if (patternName === 'SQL 구문 반복') {
-    return (text.match(/sql|select|union|where|\bor\b|데이터베이스\s*조회/gi) || []).length;
-  }
-
-  if (patternName === '스크립트 태그 반복') {
-    return (text.match(/<script\b|script\s*tag|스크립트.*(?:삽입|태그|표식).*표?/gi) || []).length;
-  }
-
-  if (patternName === '경로 상위 이동 반복') {
-    return (text.match(/\.\.\//g) || []).length;
-  }
-
-  if (patternName === '명령 구분자 반복') {
-    return (text.match(/명령\s*구분자|command\s*separator|(?:&&|\|\||;)/gi) || []).length;
-  }
-
-  return 0;
+function countOf(alert) {
+  const n = Number(alert?.data?.count);
+  return Number.isFinite(n) ? n : 0;
 }
 
-function matchedPatterns(alert, patterns) {
-  const text = requestText(alert);
-
-  return patterns.filter((pattern) => {
-    if (pattern.name === 'SQL 구문 반복') {
-      return /sql\s*(?:구문|표기|표식)|select|union|where|\bor\b|데이터베이스\s*조회/i.test(text);
-    }
-
-    if (pattern.name === '스크립트 태그 반복') {
-      return /<script\b|script\s*tag|스크립트.*(?:삽입|태그|표식)/i.test(text);
-    }
-
-    if (pattern.name === '경로 상위 이동 반복') {
-      return /\.\.\//.test(text) || /경로.*거슬러|경로.*이탈|상위.*이동/i.test(text);
-    }
-
-    if (pattern.name === '명령 구분자 반복') {
-      return /명령\s*구분자|command\s*separator|(?:&&|\|\||;)/i.test(text);
-    }
-
-    return false;
-  });
-}
-
-async function askJev(alert, matched) {
-  try {
-    const jev = globalThis.Jev ?? globalThis.jev;
-
-    if (!jev || typeof jev.decide !== 'function') {
-      return null;
-    }
-
-    const response = await jev.decide({
-      alert,
-      patterns: matched.map((pattern) => pattern.name),
-    });
-
-    const confidence =
-      typeof response === 'number'
-        ? response
-        : Number(response?.confidence);
-
-    if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
-      return null;
-    }
-
-    return confidence;
-  } catch {
-    return null;
-  }
+function matchedPattern(alert) {
+  const text = textOf(alert);
+  const count = countOf(alert);
+  return PATTERNS.find((pattern) => pattern.test.test(text) || pattern.weak.test(text) || pattern.repeat(text, count));
 }
 
 export async function decide(alert) {
-  const patterns = await loadPatterns();
-  const matched = matchedPatterns(alert, patterns);
-
-  if (matched.length === 0) {
-    return {
-      action: 'record',
-      confidence: RECORD_CONFIDENCE,
-      reason: '근거 패턴 없음',
-    };
+  const pattern = matchedPattern(alert);
+  if (!hasT1190(alert) || !pattern) {
+    return { action: 'record', confidence: 0.1, reason: '근거 패턴 없음' };
   }
 
-  const clearPattern = matched.find(
-    (pattern) => countSignals(alert, pattern.name) >= 2,
-  );
-
-  if (clearPattern) {
-    return {
-      action: 'block',
-      confidence: BLOCK_CONFIDENCE,
-      reason: clearPattern.name,
-    };
+  const text = textOf(alert);
+  const count = countOf(alert);
+  if (pattern.repeat(text, count)) {
+    return { action: 'block', confidence: 0.95, reason: pattern.name };
   }
 
-  const jevConfidence = await askJev(alert, matched);
-
-  if (jevConfidence === null) {
-    return {
-      action: 'alert',
-      confidence: ALERT_CONFIDENCE,
-      reason: matched[0].name,
-    };
-  }
-
-  if (jevConfidence >= 0.85) {
-    return {
-      action: 'block',
-      confidence: jevConfidence,
-      reason: matched[0].name,
-    };
-  }
-
-  if (jevConfidence >= 0.5) {
-    return {
-      action: 'alert',
-      confidence: jevConfidence,
-      reason: matched[0].name,
-    };
-  }
-
-  return {
-    action: 'record',
-    confidence: jevConfidence,
-    reason: matched[0].name,
-  };
-}
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  console.log('web-injection decide 모듈: decide(alert)를 export합니다.');
+  return { action: 'alert', confidence: 0.6, reason: pattern.name };
 }
