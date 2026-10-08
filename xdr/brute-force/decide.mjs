@@ -1,6 +1,5 @@
-const BLOCK_THRESHOLD = 0.85;
 const ALERT_THRESHOLD = 0.5;
-const CLEAR_FAILURE_COUNT = 4;
+const CLEAR_FAILURE_COUNT = 15;
 
 const SHORT_BURST = '짧은 시간 같은 주소의 연속 로그인 실패';
 const PASSWORD_SPRAY = '여러 계정에 같은 비밀번호 대입';
@@ -37,11 +36,8 @@ function isClearlyNormal(alert) {
 
 function isClearlyMalicious(alert, patternName) {
   if (!hasT1110(alert)) return false;
-  const level = Number(alert?.rule?.level);
-  if (Number.isFinite(level) && level >= 10) return true;
-  if (!patternName) return false;
   if (patternName === PASSWORD_SPRAY) return true;
-  return false;
+  return failureCount(alert) >= CLEAR_FAILURE_COUNT;
 }
 
 export async function decide(alert) {
