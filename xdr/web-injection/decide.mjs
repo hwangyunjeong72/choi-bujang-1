@@ -40,7 +40,7 @@ function countSignals(alert, patternName) {
   }
 
   if (patternName === '스크립트 태그 반복') {
-    return (text.match(/<script\b|script\s*tag|스크립트.*(?:삽입|태그).*표/gi) || []).length;
+    return (text.match(/<script\b|script\s*tag|스크립트.*(?:삽입|태그|표식).*표?/gi) || []).length;
   }
 
   if (patternName === '경로 상위 이동 반복') {
@@ -55,11 +55,11 @@ function matchedPatterns(alert, patterns) {
 
   return patterns.filter((pattern) => {
     if (pattern.name === 'SQL 구문 반복') {
-      return /sql\s*(?:구문|표기)|select|union|where|\bor\b|데이터베이스\s*조회/i.test(text);
+      return /sql\s*(?:구문|표기|표식)|select|union|where|\bor\b|데이터베이스\s*조회/i.test(text);
     }
 
     if (pattern.name === '스크립트 태그 반복') {
-      return /<script\b|script\s*tag|스크립트.*(?:삽입|태그).*표/i.test(text);
+      return /<script\b|script\s*tag|스크립트.*(?:삽입|태그|표식)/i.test(text);
     }
 
     if (pattern.name === '경로 상위 이동 반복') {
@@ -155,7 +155,6 @@ export async function decide(alert) {
   };
 }
 
-// 직접 실행하지 않고, XDR 실행기에서 decide(alert)를 호출합니다.
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   console.log('web-injection decide 모듈: decide(alert)를 export합니다.');
 }
