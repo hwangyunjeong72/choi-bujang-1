@@ -5,23 +5,18 @@
   "patterns": [
     {
       "name": "SQL 구문 반복",
-      "condition": "요청 인자에서 SQL 구문 표기가 반복적으로 나타나는 경우",
-      "evidence": "MITRE ATT&CK T1190은 공개된 웹 애플리케이션을 악용하는 사례에 SQL injection을 포함합니다."
+      "condition": "요청 인자에서 SELECT, UNION, WHERE, OR 같은 SQL 구문이 2회 이상 반복되거나 SQL 구문 표기가 반복된 경우",
+      "evidence": "MITRE ATT&CK T1190은 공개된 웹 애플리케이션 악용의 사례로 SQL injection을 명시합니다."
     },
     {
       "name": "스크립트 태그 반복",
-      "condition": "요청 인자에서 스크립트 태그 표기가 반복적으로 나타나는 경우",
-      "evidence": "MITRE ATT&CK의 T1190 관련 매핑에는 Cross-site scripting(XSS)이 공개 애플리케이션 악용 유형으로 연결되어 있습니다."
+      "condition": "요청 인자에서 <script> 같은 스크립트 태그 표기가 2회 이상 반복되거나 스크립트 삽입 표기가 반복된 경우",
+      "evidence": "MITRE ATT&CK T1190 관련 매핑에는 Cross-site scripting(XSS)이 공개 애플리케이션 악용 유형으로 연결됩니다."
     },
     {
       "name": "경로 상위 이동 반복",
-      "condition": "요청 인자에서 ../ 형태의 경로 상위 이동 표기가 반복적으로 나타나는 경우",
-      "evidence": "MITRE ATT&CK의 T1190 관련 매핑에는 path traversal이 공개 애플리케이션 악용 유형으로 연결되어 있습니다."
-    },
-    {
-      "name": "명령 구분자 반복",
-      "condition": "요청 인자에서 명령 구분자 표기가 같은 주소에서 반복적으로 나타나는 경우",
-      "evidence": "fixture의 wi-06은 T1190 경보에서 명령 구분자 표기가 연속 요청 11번 반복된 명확한 주입 사례입니다."
+      "condition": "요청 인자에서 ../ 형태의 경로 상위 이동 표기가 2회 이상 반복되거나 경로 이탈 표기가 반복된 경우",
+      "evidence": "MITRE ATT&CK T1190 관련 매핑에는 path traversal이 공개 애플리케이션 악용 유형으로 연결됩니다."
     }
   ]
 }
