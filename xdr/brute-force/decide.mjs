@@ -2,7 +2,7 @@ import patterns from './patterns.json' with { type: 'json' };
 
 const BLOCK_THRESHOLD = 0.85;
 const ALERT_THRESHOLD = 0.5;
-const CLEAR_FAILURE_COUNT = 6;
+const CLEAR_FAILURE_COUNT = 4;
 
 const [SHORT_BURST, PASSWORD_SPRAY] = patterns.patterns.map((pattern) => pattern.name);
 
